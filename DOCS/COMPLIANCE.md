@@ -1,0 +1,1 @@
+DSGVO: Datenminimierung, Löschkonzept, PII-Masking in Logs, Audit-Logs in Postgres.

@@ -1,0 +1,1 @@
+Windows 11 + WSL2 Ubuntu 22.04 • Docker 24+ • Node 20 LTS • Python 3.11.

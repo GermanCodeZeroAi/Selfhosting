@@ -1,0 +1,14 @@
+traefik_http: 80
+traefik_https: 443
+postgres: 5432
+redis: 6379
+n8n: 5678
+grafana: 3000
+prometheus: 9090
+loki: 3100
+portainer: 9000
+qdrant: 6333
+gcza_intent: 7001
+gcza_drafting: 7002
+telegram_bot: 8080
+ollama: 11434

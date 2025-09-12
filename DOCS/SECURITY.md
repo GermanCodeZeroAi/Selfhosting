@@ -1,0 +1,1 @@
+TLS via Traefik (dev: mkcert). Keine Secrets im Repo. Outbound-Allowlist für SMTP/IMAP.

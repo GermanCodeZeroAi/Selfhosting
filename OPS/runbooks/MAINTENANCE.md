@@ -1,0 +1,1 @@
+Routine: Backups täglich, Updates wöchentlich, Logs rotieren, Dashboards prüfen, Storage-Quota für Modelle überwachen.
