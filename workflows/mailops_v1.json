@@ -1,0 +1,91 @@
+{
+  "name": "MailOps V1 - IMAP→Intent→Draft→Telegram→SMTP",
+  "nodes": [
+    {
+      "parameters": {
+        "box": "INBOX",
+        "downloadAttachments": false
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [200, 200],
+      "name": "IMAP Trigger",
+      "credentials": {
+        "imap": { "id": "imap_creds", "name": "IMAP Account" }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://gcza-intent:7001/classify",
+        "options": {},
+        "jsonParameters": true
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 200],
+      "name": "Classify Intent",
+      "fields": {
+        "body": "{\"text\":\"={{$json[\"text\"] || $json[\"html\"] || $json[\"body\"]}}\"}",
+        "options": "{}",
+        "query": "{}",
+        "headers": "{\"Content-Type\":\"application/json\"}"
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://gcza-drafting:7002/draft",
+        "jsonParameters": true
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 200],
+      "name": "Draft Email",
+      "fields": {
+        "body": "{\"subject\":\"={{$json[\"subject\"]}}\",\"body_preview\":\"={{$json[\"text\"] || $json[\"html\"] || $json[\"body\"]}}\",\"intent\":\"={{$node[\"Classify Intent\"].json[\"intent\"]}}\"}",
+        "headers": "{\"Content-Type\":\"application/json\"}"
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "Neu: {{$json[\"subject\"]}}\nIntent: {{$node[\"Classify Intent\"].json[\"intent\"]}}\n---\nVorschlag:\n{{$node[\"Draft Email\"].json[\"draft\"]}}",
+        "additionalFields": {
+          "replyMarkup": {
+            "inline_keyboard": [
+              [{ "text": "Senden", "callback_data": "SEND" }],
+              [{ "text": "Verwerfen", "callback_data": "DROP" }],
+              [{ "text": "Snooze 15m", "callback_data": "SNOOZE_15" }]
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1100, 200],
+      "name": "Telegram Review",
+      "credentials": {
+        "telegramApi": { "id": "tg_creds", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_USER}}",
+        "toEmail": "={{$json[\"from\"]}}",
+        "subject": "Re: {{$json[\"subject\"]}}",
+        "text": "={{$node[\"Draft Email\"].json[\"draft\"]}}"
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1400, 120],
+      "name": "SMTP Send",
+      "credentials": {
+        "smtp": { "id": "smtp_creds", "name": "SMTP Account" }
+      }
+    }
+  ],
+  "connections": {
+    "IMAP Trigger": { "main": [[{ "node": "Classify Intent", "type": "main", "index": 0 }]] },
+    "Classify Intent": { "main": [[{ "node": "Draft Email", "type": "main", "index": 0 }]] },
+    "Draft Email": { "main": [[{ "node": "Telegram Review", "type": "main", "index": 0 }]] }
+  }
+}

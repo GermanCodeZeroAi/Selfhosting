@@ -1,0 +1,101 @@
+version: "3.9"
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - --providers.docker
+      - --entrypoints.web.address=:${TRAEFIK_HTTP:-80}
+      - --entrypoints.websecure.address=:${TRAEFIK_HTTPS:-443}
+    ports:
+      - "${TRAEFIK_HTTP:-80}:80"
+      - "${TRAEFIK_HTTPS:-443}:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.8.4
+    ports: ["${QDRANT_PORT:-6333}:6333"]
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:1.71.1
+    env_file: .env
+    environment:
+      - N8N_PROTOCOL=http
+      - N8N_PORT=${N8N_PORT}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - QUEUE_BULL_REDIS_HOST=redis
+    depends_on: [postgres, redis]
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports: ["${GRAFANA_PORT:-3000}:3000"]
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    ports: ["${PROM_PORT:-9090}:9090"]
+    volumes:
+      - prom_data:/prometheus
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.3
+    ports: ["${LOKI_PORT:-3100}:3100"]
+    volumes:
+      - loki_data:/loki
+    restart: unless-stopped
+
+  gcza-intent:
+    build: ./services/gcza-intent
+    env_file: .env
+    ports: ["7001:7001"]
+    volumes:
+      - models:/models
+    depends_on: [redis, postgres]
+    restart: unless-stopped
+
+  gcza-drafting:
+    build: ./services/gcza-drafting
+    env_file: .env
+    ports: ["7002:7002"]
+    depends_on: [gcza-intent]
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  n8n_data:
+  grafana_data:
+  prom_data:
+  loki_data:
+  qdrant_data:
+  models:

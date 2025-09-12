@@ -1,0 +1,1 @@
+[ ] .env erstellt • [ ] make validate • [ ] make up • [ ] n8n erreichbar • [ ] Workflow importiert • [ ] Testmail durchgelaufen • [ ] Backup+Restore getestet.

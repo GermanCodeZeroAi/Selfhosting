@@ -1,0 +1,1 @@
+Erstmaßnahmen: Logs (Loki/Container), `make logs`, Service neu starten, Incident dokumentieren (DOCS/ERROR_LOGS.md), Root Cause Analyse, Fix, Review.
